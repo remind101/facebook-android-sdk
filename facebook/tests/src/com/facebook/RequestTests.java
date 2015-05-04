@@ -1,29 +1,35 @@
 /**
- * Copyright 2010-present Facebook.
+ * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
+ * copy, modify, and distribute this software in source code or binary form for use
+ * in connection with the web services and APIs provided by Facebook.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * As with any software that integrates with the Facebook platform, your use of
+ * this software is subject to the Facebook Developer Principles and Policies
+ * [http://developers.facebook.com/policy/]. This copyright notice shall be
+ * included in all copies or substantial portions of the software.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.facebook;
 
 import android.graphics.Bitmap;
 import android.location.Location;
-import android.net.Uri;
 import android.os.Bundle;
 import android.test.suitebuilder.annotation.LargeTest;
-import android.test.suitebuilder.annotation.MediumTest;
-import android.test.suitebuilder.annotation.SmallTest;
-import com.facebook.model.*;
+
+import com.facebook.share.internal.ShareInternalUtility;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -37,366 +43,77 @@ import java.util.List;
 public class RequestTests extends FacebookTestCase {
     private final static String TEST_OG_TYPE = "facebooksdktests:test";
 
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testCreateRequest() {
-        Request request = new Request();
-        assertTrue(request != null);
-        assertEquals(HttpMethod.GET, request.getHttpMethod());
-    }
+    protected String[] getDefaultPermissions()
+    {
+        return new String[] { "email", "publish_actions", "read_stream" };
+    };
 
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testCreatePostRequest() {
-        GraphObject graphObject = GraphObject.Factory.create();
-        Request request = Request.newPostRequest(null, "me/statuses", graphObject, null);
-        assertTrue(request != null);
-        assertEquals(HttpMethod.POST, request.getHttpMethod());
-        assertEquals("me/statuses", request.getGraphPath());
-        assertEquals(graphObject, request.getGraphObject());
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testCreateMeRequest() {
-        Request request = Request.newMeRequest(null, null);
-        assertTrue(request != null);
-        assertEquals(HttpMethod.GET, request.getHttpMethod());
-        assertEquals("me", request.getGraphPath());
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testCreateMyFriendsRequest() {
-        Request request = Request.newMyFriendsRequest(null, null);
-        assertTrue(request != null);
-        assertEquals(HttpMethod.GET, request.getHttpMethod());
-        assertEquals("me/friends", request.getGraphPath());
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testCreateUploadPhotoRequest() {
-        Bitmap image = Bitmap.createBitmap(128, 128, Bitmap.Config.ALPHA_8);
-
-        Request request = Request.newUploadPhotoRequest(null, image, null);
-        assertTrue(request != null);
-
-        Bundle parameters = request.getParameters();
-        assertTrue(parameters != null);
-
-        assertTrue(parameters.containsKey("picture"));
-        assertEquals(image, parameters.getParcelable("picture"));
-        assertEquals("me/photos", request.getGraphPath());
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testCreatePlacesSearchRequestWithLocation() {
-        Location location = new Location("");
-        location.setLatitude(47.6204);
-        location.setLongitude(-122.3491);
-
-        Request request = Request.newPlacesSearchRequest(null, location, 1000, 50, null, null);
-
-        assertTrue(request != null);
-        assertEquals(HttpMethod.GET, request.getHttpMethod());
-        assertEquals("search", request.getGraphPath());
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testCreatePlacesSearchRequestWithSearchText() {
-        Request request = Request.newPlacesSearchRequest(null, null, 1000, 50, "Starbucks", null);
-
-        assertTrue(request != null);
-        assertEquals(HttpMethod.GET, request.getHttpMethod());
-        assertEquals("search", request.getGraphPath());
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testCreatePlacesSearchRequestRequiresLocationOrSearchText() {
-        try {
-            Request.newPlacesSearchRequest(null, null, 1000, 50, null, null);
-            fail("expected exception");
-        } catch (FacebookException exception) {
-            // Success
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testNewPostOpenGraphObjectRequestRequiresObject() {
-        try {
-            Request.newPostOpenGraphObjectRequest(null, null, null);
-            fail("expected exception");
-        } catch (FacebookException exception) {
-            // Success
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testNewPostOpenGraphObjectRequestRequiresObjectType() {
-        try {
-            OpenGraphObject object = OpenGraphObject.Factory.createForPost(null);
-            Request.newPostOpenGraphObjectRequest(null, object, null);
-            fail("expected exception");
-        } catch (FacebookException exception) {
-            // Success
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testNewPostOpenGraphObjectRequestRequiresNonEmptyObjectType() {
-        try {
-            OpenGraphObject object = OpenGraphObject.Factory.createForPost("");
-            object.setTitle("bar");
-            Request.newPostOpenGraphObjectRequest(null, object, null);
-            fail("expected exception");
-        } catch (FacebookException exception) {
-            // Success
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testNewPostOpenGraphObjectRequestRequiresTitle() {
-        try {
-            OpenGraphObject object = OpenGraphObject.Factory.createForPost("foo");
-            Request.newPostOpenGraphObjectRequest(null, object, null);
-            fail("expected exception");
-        } catch (FacebookException exception) {
-            // Success
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testNewPostOpenGraphObjectRequestRequiresNonEmptyTitle() {
-        try {
-            OpenGraphObject object = OpenGraphObject.Factory.createForPost("foo");
-            object.setTitle("");
-            Request.newPostOpenGraphObjectRequest(null, object, null);
-            fail("expected exception");
-        } catch (FacebookException exception) {
-            // Success
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testNewPostOpenGraphObjectRequest() {
-        OpenGraphObject object = OpenGraphObject.Factory.createForPost("foo");
-        object.setTitle("bar");
-        Request request = Request.newPostOpenGraphObjectRequest(null, object, null);
-        assertNotNull(request);
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testNewPostOpenGraphActionRequestRequiresAction() {
-        try {
-            Request.newPostOpenGraphActionRequest(null, null, null);
-            fail("expected exception");
-        } catch (FacebookException exception) {
-            // Success
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testNewPostOpenGraphActionRequestRequiresActionType() {
-        try {
-            OpenGraphAction action = OpenGraphAction.Factory.createForPost(null);
-            Request.newPostOpenGraphActionRequest(null, action, null);
-            fail("expected exception");
-        } catch (FacebookException exception) {
-            // Success
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testNewPostOpenGraphActionRequestRequiresNonEmptyActionType() {
-        try {
-            OpenGraphAction action = OpenGraphAction.Factory.createForPost("");
-            Request.newPostOpenGraphActionRequest(null, action, null);
-            fail("expected exception");
-        } catch (FacebookException exception) {
-            // Success
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testNewPostOpenGraphActionRequest() {
-        OpenGraphAction action = OpenGraphAction.Factory.createForPost("foo");
-        Request request = Request.newPostOpenGraphActionRequest(null, action, null);
-        assertNotNull(request);
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testSetHttpMethodToNilGivesDefault() {
-        Request request = new Request();
-        assertEquals(HttpMethod.GET, request.getHttpMethod());
-
-        request.setHttpMethod(null);
-        assertEquals(HttpMethod.GET, request.getHttpMethod());
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testExecuteBatchWithNullRequestsThrows() {
-        try {
-            Request.executeBatchAndWait((Request[]) null);
-            fail("expected NullPointerException");
-        } catch (NullPointerException exception) {
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testExecuteBatchWithZeroRequestsThrows() {
-        try {
-            Request.executeBatchAndWait(new Request[]{});
-            fail("expected IllegalArgumentException");
-        } catch (IllegalArgumentException exception) {
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testExecuteBatchWithNullRequestThrows() {
-        try {
-            Request.executeBatchAndWait(new Request[]{null});
-            fail("expected NullPointerException");
-        } catch (NullPointerException exception) {
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testToHttpConnectionWithNullRequestsThrows() {
-        try {
-            Request.toHttpConnection((Request[]) null);
-            fail("expected NullPointerException");
-        } catch (NullPointerException exception) {
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testToHttpConnectionWithZeroRequestsThrows() {
-        try {
-            Request.toHttpConnection(new Request[]{});
-            fail("expected IllegalArgumentException");
-        } catch (IllegalArgumentException exception) {
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testToHttpConnectionWithNullRequestThrows() {
-        try {
-            Request.toHttpConnection(new Request[]{null});
-            fail("expected NullPointerException");
-        } catch (NullPointerException exception) {
-        }
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testSingleGetToHttpRequest() throws Exception {
-        Request requestMe = new Request(null, "TourEiffel");
-        HttpURLConnection connection = Request.toHttpConnection(requestMe);
-
-        assertTrue(connection != null);
-
-        assertEquals("GET", connection.getRequestMethod());
-        assertEquals("/TourEiffel", connection.getURL().getPath());
-
-        assertTrue(connection.getRequestProperty("User-Agent").startsWith("FBAndroidSDK"));
-
-        Uri uri = Uri.parse(connection.getURL().toString());
-        assertEquals("android", uri.getQueryParameter("sdk"));
-        assertEquals("json", uri.getQueryParameter("format"));
-    }
-
-    @MediumTest
     @LargeTest
     public void testExecuteSingleGet() {
-        Request request = new Request(null, "TourEiffel");
-        Response response = request.executeAndWait();
+        final AccessToken accessToken = getAccessTokenForSharedUser();
+        GraphRequest request = new GraphRequest(accessToken, "TourEiffel");
+        GraphResponse response = request.executeAndWait();
 
         assertTrue(response != null);
         assertTrue(response.getError() == null);
-        assertTrue(response.getGraphObject() != null);
+        assertNotNull(response.getJSONObject());
+        assertNotNull(response.getRawResponse());
 
-        GraphPlace graphPlace = response.getGraphObjectAs(GraphPlace.class);
-        assertEquals("Paris", graphPlace.getLocation().getCity());
+        JSONObject graphPlace = response.getJSONObject();
+        assertEquals("Paris", graphPlace.optJSONObject("location").optString("city"));
     }
 
-    @MediumTest
+    @LargeTest
+    public void testBuildsUploadPhotoHttpURLConnection() throws Exception {
+        final AccessToken accessToken = getAccessTokenForSharedUser();
+        Bitmap image = createTestBitmap(128);
+
+        GraphRequest request = ShareInternalUtility.newUploadPhotoRequest(
+                accessToken,
+                image,
+                "Test photo messsage",
+                null);
+        HttpURLConnection connection = GraphRequest.toHttpConnection(request);
+
+        assertTrue(connection != null);
+        assertNotSame("gzip", connection.getRequestProperty("Content-Encoding"));
+        assertNotSame("application/x-www-form-urlencoded", connection.getRequestProperty("Content-Type"));
+    }
+
     @LargeTest
     public void testExecuteSingleGetUsingHttpURLConnection() throws IOException {
-        Request request = new Request(null, "TourEiffel");
-        HttpURLConnection connection = Request.toHttpConnection(request);
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
+        GraphRequest request = new GraphRequest(accessToken, "TourEiffel");
+        HttpURLConnection connection = GraphRequest.toHttpConnection(request);
 
-        List<Response> responses = Request.executeConnectionAndWait(connection, Arrays.asList(new Request[]{request}));
+        assertEquals("gzip", connection.getRequestProperty("Content-Encoding"));
+        assertEquals("application/x-www-form-urlencoded", connection.getRequestProperty("Content-Type"));
+
+        List<GraphResponse> responses = GraphRequest.executeConnectionAndWait(connection, Arrays.asList(new GraphRequest[]{request}));
         assertNotNull(responses);
         assertEquals(1, responses.size());
 
-        Response response = responses.get(0);
+        GraphResponse response = responses.get(0);
 
         assertTrue(response != null);
         assertTrue(response.getError() == null);
-        assertTrue(response.getGraphObject() != null);
+        assertNotNull(response.getJSONObject());
+        assertNotNull(response.getRawResponse());
 
-        GraphPlace graphPlace = response.getGraphObjectAs(GraphPlace.class);
-        assertEquals("Paris", graphPlace.getLocation().getCity());
+        JSONObject graphPlace = response.getJSONObject();
+        assertEquals("Paris", graphPlace.optJSONObject("location").optString("city"));
 
         // Make sure calling code can still access HTTP headers and call disconnect themselves.
         int code = connection.getResponseCode();
         assertEquals(200, code);
-        assertTrue(connection.getHeaderFields().keySet().contains("Content-Length"));
+        assertTrue(connection.getHeaderFields().keySet().contains("Content-Type"));
         connection.disconnect();
     }
 
-    @MediumTest
     @LargeTest
     public void testFacebookErrorResponseCreatesError() {
-        Request request = new Request(null, "somestringthatshouldneverbeavalidfobjectid");
-        Response response = request.executeAndWait();
+        GraphRequest request = new GraphRequest(null, "somestringthatshouldneverbeavalidfobjectid");
+        GraphResponse response = request.executeAndWait();
 
         assertTrue(response != null);
 
@@ -412,158 +129,152 @@ public class RequestTests extends FacebookTestCase {
     }
 
     @LargeTest
-    public void testFacebookSuccessResponseWithErrorCodeCreatesError() {
-        TestSession session = openTestSessionWithSharedUser();
-
-        Request request = Request.newRestRequest(session, "auth.extendSSOAccessToken", null, null);
-        assertNotNull(request);
-
-        // Because TestSession access tokens were not created via SSO, we expect to get an error from the service,
-        // but with a 200 (success) code.
-        Response response = request.executeAndWait();
-
-        assertTrue(response != null);
-
-        FacebookRequestError error = response.getError();
-        assertNotNull(error);
-
-        assertTrue(error.getException() instanceof FacebookServiceException);
-        assertTrue(error.getErrorCode() != FacebookRequestError.INVALID_ERROR_CODE);
-        assertNotNull(error.getRequestResultBody());
-    }
-
-    @MediumTest
-    @LargeTest
-    public void testRequestWithUnopenedSessionFails() {
-        TestSession session = getTestSessionWithSharedUser(null);
-        Request request = new Request(session, "me");
-        Response response = request.executeAndWait();
+    public void testRequestWithNoTokenFails() {
+        GraphRequest request = new GraphRequest(null, "me");
+        GraphResponse response = request.executeAndWait();
 
         assertNotNull(response.getError());
     }
 
-    @MediumTest
     @LargeTest
     public void testExecuteRequestMe() {
-        TestSession session = openTestSessionWithSharedUser();
-        Request request = Request.newMeRequest(session, null);
-        Response response = request.executeAndWait();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
+        GraphRequest request = GraphRequest.newMeRequest(accessToken, null);
+        GraphResponse response = request.executeAndWait();
 
-        validateMeResponse(session, response);
+        validateMeResponse(accessToken, response);
     }
 
-    static void validateMeResponse(TestSession session, Response response) {
+    static void validateMeResponse(AccessToken accessToken, GraphResponse response) {
         assertNull(response.getError());
 
-        GraphUser me = response.getGraphObjectAs(GraphUser.class);
+        JSONObject me = response.getJSONObject();
         assertNotNull(me);
-        assertEquals(session.getTestUserId(), me.getId());
+        assertEquals(accessToken.getUserId(), me.optString("id"));
+        assertNotNull(response.getRawResponse());
     }
 
-    @MediumTest
     @LargeTest
     public void testExecuteMyFriendsRequest() {
-        TestSession session = openTestSessionWithSharedUser();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
 
-        Request request = Request.newMyFriendsRequest(session, null);
-        Response response = request.executeAndWait();
+        GraphRequest request = GraphRequest.newMyFriendsRequest(accessToken, null);
+        GraphResponse response = request.executeAndWait();
 
-        validateMyFriendsResponse(session, response);
+        validateMyFriendsResponse(response);
     }
 
-    static void validateMyFriendsResponse(TestSession session, Response response) {
+    static void validateMyFriendsResponse(GraphResponse response) {
         assertNotNull(response);
 
         assertNull(response.getError());
 
-        GraphMultiResult graphResult = response.getGraphObjectAs(GraphMultiResult.class);
+        JSONObject graphResult = response.getJSONObject();
         assertNotNull(graphResult);
 
-        List<GraphObject> results = graphResult.getData();
+        JSONArray results = graphResult.optJSONArray("data");
         assertNotNull(results);
+
+        assertNotNull(response.getRawResponse());
     }
 
-    @MediumTest
     @LargeTest
     public void testExecutePlaceRequestWithLocation() {
-        TestSession session = openTestSessionWithSharedUser();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
 
         Location location = new Location("");
         location.setLatitude(47.6204);
         location.setLongitude(-122.3491);
 
-        Request request = Request.newPlacesSearchRequest(session, location, 5, 5, null, null);
-        Response response = request.executeAndWait();
+        GraphRequest request = GraphRequest.newPlacesSearchRequest(accessToken, location, 5, 5, null, null);
+        GraphResponse response = request.executeAndWait();
         assertNotNull(response);
 
         assertNull(response.getError());
 
-        GraphMultiResult graphResult = response.getGraphObjectAs(GraphMultiResult.class);
+        JSONObject graphResult = response.getJSONObject();
         assertNotNull(graphResult);
 
-        List<GraphObject> results = graphResult.getData();
+        JSONArray results = graphResult.optJSONArray("data");
         assertNotNull(results);
+
+        assertNotNull(response.getRawResponse());
     }
 
-    @MediumTest
     @LargeTest
     public void testExecutePlaceRequestWithSearchText() {
-        TestSession session = openTestSessionWithSharedUser();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
 
         // Pass a distance without a location to ensure it is correctly ignored.
-        Request request = Request.newPlacesSearchRequest(session, null, 1000, 5, "Starbucks", null);
-        Response response = request.executeAndWait();
+        GraphRequest request = GraphRequest.newPlacesSearchRequest(accessToken, null, 1000, 5, "Starbucks", null);
+        GraphResponse response = request.executeAndWait();
         assertNotNull(response);
 
         assertNull(response.getError());
 
-        GraphMultiResult graphResult = response.getGraphObjectAs(GraphMultiResult.class);
+        JSONObject graphResult = response.getJSONObject();
         assertNotNull(graphResult);
 
-        List<GraphObject> results = graphResult.getData();
+        JSONArray results = graphResult.optJSONArray("data");
         assertNotNull(results);
+
+        assertNotNull(response.getRawResponse());
     }
 
-    @MediumTest
     @LargeTest
     public void testExecutePlaceRequestWithLocationAndSearchText() {
-        TestSession session = openTestSessionWithSharedUser();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
 
         Location location = new Location("");
         location.setLatitude(47.6204);
         location.setLongitude(-122.3491);
 
-        Request request = Request.newPlacesSearchRequest(session, location, 1000, 5, "Starbucks", null);
-        Response response = request.executeAndWait();
+        GraphRequest request = GraphRequest.newPlacesSearchRequest(accessToken, location, 1000, 5, "Starbucks", null);
+        GraphResponse response = request.executeAndWait();
         assertNotNull(response);
 
         assertNull(response.getError());
 
-        GraphMultiResult graphResult = response.getGraphObjectAs(GraphMultiResult.class);
+        JSONObject graphResult = response.getJSONObject();
         assertNotNull(graphResult);
 
-        List<GraphObject> results = graphResult.getData();
+        JSONArray results = graphResult.optJSONArray("data");
         assertNotNull(results);
+
+        assertNotNull(response.getRawResponse());
     }
 
     private String executePostOpenGraphRequest() {
-        TestSession session = openTestSessionWithSharedUser();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
 
-        GraphObject data = GraphObject.Factory.create();
-        data.setProperty("a_property", "hello");
+        JSONObject data = new JSONObject();
+        try {
+            data.put("a_property", "hello");
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
 
-        Request request = Request.newPostOpenGraphObjectRequest(session, TEST_OG_TYPE, "a title",
-                "http://www.facebook.com", "http://www.facebook.com/zzzzzzzzzzzzzzzzzzz", "a description", data, null);
-        Response response = request.executeAndWait();
+        GraphRequest request = ShareInternalUtility.newPostOpenGraphObjectRequest(
+                accessToken,
+                TEST_OG_TYPE,
+                "a title",
+                "http://www.facebook.com",
+                "http://www.facebook.com/zzzzzzzzzzzzzzzzzzz",
+                "a description",
+                data,
+                null);
+        GraphResponse response = request.executeAndWait();
         assertNotNull(response);
 
         assertNull(response.getError());
 
-        GraphObject graphResult = response.getGraphObject();
+        JSONObject graphResult = response.getJSONObject();
         assertNotNull(graphResult);
-        assertNotNull(graphResult.getProperty("id"));
+        assertNotNull(graphResult.optString("id"));
 
-        return (String) graphResult.getProperty("id");
+        assertNotNull(response.getRawResponse());
+
+        return (String) graphResult.optString("id");
     }
 
     @LargeTest
@@ -575,51 +286,59 @@ public class RequestTests extends FacebookTestCase {
     public void testDeleteObjectRequest() {
         String id = executePostOpenGraphRequest();
 
-        TestSession session = openTestSessionWithSharedUser();
-        Request request = Request.newDeleteObjectRequest(session, id, null);
-        Response response = request.executeAndWait();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
+        GraphRequest request = GraphRequest.newDeleteObjectRequest(accessToken, id, null);
+        GraphResponse response = request.executeAndWait();
         assertNotNull(response);
 
         assertNull(response.getError());
 
-        GraphObject result = response.getGraphObject();
+        JSONObject result = response.getJSONObject();
         assertNotNull(result);
 
-        assertTrue((Boolean) result.getProperty(Response.NON_JSON_RESPONSE_PROPERTY));
+        assertTrue(result.optBoolean(GraphResponse.SUCCESS_KEY));
+        assertNotNull(response.getRawResponse());
     }
 
     @LargeTest
-    public void testUpdateOpenGraphObjectRequest() {
+    public void testUpdateOpenGraphObjectRequest() throws JSONException {
         String id = executePostOpenGraphRequest();
 
-        GraphObject data = GraphObject.Factory.create();
-        data.setProperty("a_property", "goodbye");
+        JSONObject data = new JSONObject();
+        data.put("a_property", "goodbye");
 
-        TestSession session = openTestSessionWithSharedUser();
-        Request request = Request.newUpdateOpenGraphObjectRequest(session, id, "another title", null,
-                "http://www.facebook.com/aaaaaaaaaaaaaaaaa", "another description", data, null);
-        Response response = request.executeAndWait();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
+        GraphRequest request = ShareInternalUtility.newUpdateOpenGraphObjectRequest(accessToken, id,
+                "another title", null, "http://www.facebook.com/aaaaaaaaaaaaaaaaa",
+                "another description", data, null);
+        GraphResponse response = request.executeAndWait();
         assertNotNull(response);
 
         assertNull(response.getError());
 
-        GraphObject result = response.getGraphObject();
+        JSONObject result = response.getJSONObject();
         assertNotNull(result);
+        assertNotNull(response.getRawResponse());
     }
 
     @LargeTest
     public void testExecuteUploadPhoto() {
-        TestSession session = openTestSessionWithSharedUser();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
         Bitmap image = createTestBitmap(128);
 
-        Request request = Request.newUploadPhotoRequest(session, image, null);
-        Response response = request.executeAndWait();
+        GraphRequest request = ShareInternalUtility.newUploadPhotoRequest(
+                accessToken,
+                image,
+                "Test photo message",
+                null);
+        GraphResponse response = request.executeAndWait();
         assertNotNull(response);
 
         assertNull(response.getError());
 
-        GraphObject result = response.getGraphObject();
+        JSONObject result = response.getJSONObject();
         assertNotNull(result);
+        assertNotNull(response.getRawResponse());
     }
 
     @LargeTest
@@ -628,7 +347,7 @@ public class RequestTests extends FacebookTestCase {
         FileOutputStream outStream = null;
 
         try {
-            TestSession session = openTestSessionWithSharedUser();
+            final AccessToken accessToken = getAccessTokenForSharedUser(); 
             Bitmap image = createTestBitmap(128);
 
             File outputDir = getActivity().getCacheDir(); // context being the Activity pointer
@@ -639,14 +358,19 @@ public class RequestTests extends FacebookTestCase {
             outStream.close();
             outStream = null;
 
-            Request request = Request.newUploadPhotoRequest(session, outputFile, null);
-            Response response = request.executeAndWait();
+            GraphRequest request = ShareInternalUtility.newUploadPhotoRequest(
+                    accessToken,
+                    outputFile,
+                    "Test photo message",
+                    null);
+            GraphResponse response = request.executeAndWait();
             assertNotNull(response);
 
             assertNull(response.getError());
 
-            GraphObject result = response.getGraphObject();
+            JSONObject result = response.getJSONObject();
             assertNotNull(result);
+            assertNotNull(response.getRawResponse());
         } finally {
             if (outStream != null) {
                 outStream.close();
@@ -657,93 +381,78 @@ public class RequestTests extends FacebookTestCase {
         }
     }
 
-    @LargeTest
-    public void testUploadVideoFile() throws IOException, URISyntaxException {
-        File tempFile = null;
-        try {
-            TestSession session = openTestSessionWithSharedUser();
-            tempFile = createTempFileFromAsset("DarkScreen.mov");
-
-            Request request = Request.newUploadVideoRequest(session, tempFile, null);
-            Response response = request.executeAndWait();
-            assertNotNull(response);
-
-            assertNull(response.getError());
-
-            GraphObject result = response.getGraphObject();
-            assertNotNull(result);
-        } catch (Exception ex) {
-            return;
-        } finally {
-            if (tempFile != null) {
-                tempFile.delete();
-            }
-        }
-    }
+//    RE-ENABLE WITH ShareApi ONCE VIDEOS TEAM FIXES ENDPOINT
+//
+//    @LargeTest
+//    public void testUploadVideoFile() throws IOException, URISyntaxException {
+//        File tempFile = null;
+//        try {
+//            final AccessToken accessToken = getAccessTokenForSharedUser();
+//            tempFile = createTempFileFromAsset("DarkScreen.mov");
+//
+//            GraphRequest request = ShareInternalUtility.newUploadVideoRequest(accessToken, tempFile,
+//                    null);
+//            GraphResponse response = request.executeAndWait();
+//            assertNotNull(response);
+//
+//            assertNull(response.getError());
+//
+//            JSONObject result = response.getJSONObject();
+//            assertNotNull(result);
+//            assertNotNull(response.getRawResponse());
+//        } catch (Exception ex) {
+//            return;
+//        } finally {
+//            if (tempFile != null) {
+//                tempFile.delete();
+//            }
+//        }
+//    }
 
     @LargeTest
     public void testPostStatusUpdate() {
-        TestSession session = openTestSessionWithSharedUser();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
 
-        GraphObject statusUpdate = createStatusUpdate("");
+        JSONObject statusUpdate = createStatusUpdate("");
 
-        GraphObject retrievedStatusUpdate = postGetAndAssert(session, "me/feed", statusUpdate);
+        JSONObject retrievedStatusUpdate = postGetAndAssert(accessToken, "me/feed",
+                statusUpdate);
 
-        assertEquals(statusUpdate.getProperty("message"), retrievedStatusUpdate.getProperty("message"));
+        assertEquals(statusUpdate.optString("message"), retrievedStatusUpdate.optString("message"));
     }
 
-    @LargeTest
-    public void testRestMethodGetUser() {
-        TestSession session = openTestSessionWithSharedUser();
-        String testUserId = session.getTestUserId();
-
-        Bundle parameters = new Bundle();
-        parameters.putString("uids", testUserId);
-        parameters.putString("fields", "uid,name");
-
-        Request request = Request.newRestRequest(session, "users.getInfo", parameters, null);
-        Response response = request.executeAndWait();
-        assertNotNull(response);
-
-        GraphObjectList<GraphObject> graphObjects = response.getGraphObjectList();
-        assertNotNull(graphObjects);
-        assertEquals(1, graphObjects.size());
-
-        GraphObject user = graphObjects.get(0);
-        assertNotNull(user);
-        assertEquals(testUserId, user.getProperty("uid").toString());
-    }
-
-    @MediumTest
     @LargeTest
     public void testCallbackIsCalled() {
-        Request request = new Request(null, "4");
+        GraphRequest request = new GraphRequest(null, "4");
 
         final ArrayList<Boolean> calledBack = new ArrayList<Boolean>();
-        request.setCallback(new Request.Callback() {
+        request.setCallback(new GraphRequest.Callback() {
             @Override
-            public void onCompleted(Response response) {
+            public void onCompleted(GraphResponse response) {
                 calledBack.add(true);
             }
         });
 
-        Response response = request.executeAndWait();
+        GraphResponse response = request.executeAndWait();
         assertNotNull(response);
         assertTrue(calledBack.size() == 1);
     }
 
-    @MediumTest
     @LargeTest
     public void testOnProgressCallbackIsCalled() {
         Bitmap image = Bitmap.createBitmap(128, 128, Bitmap.Config.ALPHA_8);
 
-        Request request = Request.newUploadPhotoRequest(null, image, null);
+        GraphRequest request = ShareInternalUtility.newUploadPhotoRequest(
+                null,
+                image,
+                null,
+                null);
         assertTrue(request != null);
 
         final ArrayList<Boolean> calledBack = new ArrayList<Boolean>();
-        request.setCallback(new Request.OnProgressCallback() {
+        request.setCallback(new GraphRequest.OnProgressCallback() {
             @Override
-            public void onCompleted(Response response) {
+            public void onCompleted(GraphResponse response) {
             }
 
             @Override
@@ -752,23 +461,26 @@ public class RequestTests extends FacebookTestCase {
             }
         });
 
-        Response response = request.executeAndWait();
+        GraphResponse response = request.executeAndWait();
         assertNotNull(response);
         assertFalse(calledBack.isEmpty());
     }
 
-    @MediumTest
     @LargeTest
     public void testLastOnProgressCallbackIsCalledOnce() {
         Bitmap image = Bitmap.createBitmap(128, 128, Bitmap.Config.ALPHA_8);
 
-        Request request = Request.newUploadPhotoRequest(null, image, null);
+        GraphRequest request = ShareInternalUtility.newUploadPhotoRequest(
+                null,
+                image,
+                null,
+                null);
         assertTrue(request != null);
 
         final ArrayList<Boolean> calledBack = new ArrayList<Boolean>();
-        request.setCallback(new Request.OnProgressCallback() {
+        request.setCallback(new GraphRequest.OnProgressCallback() {
             @Override
-            public void onCompleted(Response response) {
+            public void onCompleted(GraphResponse response) {
             }
 
             @Override
@@ -778,76 +490,47 @@ public class RequestTests extends FacebookTestCase {
             }
         });
 
-        Response response = request.executeAndWait();
+        GraphResponse response = request.executeAndWait();
         assertNotNull(response);
         assertEquals(1, calledBack.size());
     }
 
-    @MediumTest
     @LargeTest
     public void testBatchTimeoutIsApplied() {
-        Request request = new Request(null, "me");
-        RequestBatch batch = new RequestBatch(request);
+        GraphRequest request = new GraphRequest(null, "me");
+        GraphRequestBatch batch = new GraphRequestBatch(request);
 
         // We assume 1 ms is short enough to fail
         batch.setTimeout(1);
 
-        List<Response> responses = Request.executeBatchAndWait(batch);
+        List<GraphResponse> responses = GraphRequest.executeBatchAndWait(batch);
         assertNotNull(responses);
         assertTrue(responses.size() == 1);
-        Response response = responses.get(0);
+        GraphResponse response = responses.get(0);
         assertNotNull(response);
         assertNotNull(response.getError());
     }
 
-    @MediumTest
     @LargeTest
     public void testBatchTimeoutCantBeNegative() {
         try {
-            RequestBatch batch = new RequestBatch();
+            GraphRequestBatch batch = new GraphRequestBatch();
             batch.setTimeout(-1);
             fail();
         } catch (IllegalArgumentException ex) {
         }
     }
 
-    @MediumTest
-    @LargeTest
-    public void testCantSetBothGraphPathAndRestMethod() {
-        Request request = new Request();
-        request.setGraphPath("me");
-        request.setRestMethod("amethod");
-        request.setCallback(new ExpectFailureCallback());
-
-        TestRequestAsyncTask task = new TestRequestAsyncTask(request);
-        task.executeOnBlockerThread();
-
-        waitAndAssertSuccess(1);
-    }
-
-    @MediumTest
-    @LargeTest
-    public void testClosedSessionDoesntAppendAccessToken() {
-        TestSession session = openTestSessionWithSharedUser();
-        session.close();
-        Request request = new Request(session, "me", null, null, new ExpectFailureCallback());
-
-        TestRequestAsyncTask task = new TestRequestAsyncTask(request);
-        task.executeOnBlockerThread();
-
-        waitAndAssertSuccess(1);
-    }
-
-    @MediumTest
     @LargeTest
     public void testCantUseComplexParameterInGetRequest() {
-        TestSession session = openTestSessionWithSharedUser();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
 
         Bundle parameters = new Bundle();
         parameters.putShortArray("foo", new short[1]);
 
-        Request request = new Request(session, "me", parameters, HttpMethod.GET, new ExpectFailureCallback());
-        Response response = request.executeAndWait();
+        GraphRequest request = new GraphRequest(accessToken, "me", parameters, HttpMethod.GET,
+                new ExpectFailureCallback());
+        GraphResponse response = request.executeAndWait();
 
         FacebookRequestError error = response.getError();
         assertNotNull(error);
@@ -865,56 +548,49 @@ public class RequestTests extends FacebookTestCase {
 
     @LargeTest
     public void testPaging() {
-        TestSession session = openTestSessionWithSharedUser();
-        final List<GraphPlace> returnedPlaces = new ArrayList<GraphPlace>();
-        Request request = Request
-                .newPlacesSearchRequest(session, SEATTLE_LOCATION, 1000, 5, null, new Request.GraphPlaceListCallback() {
-                    @Override
-                    public void onCompleted(List<GraphPlace> places, Response response) {
-                        returnedPlaces.addAll(places);
-                    }
-                });
-        Response response = request.executeAndWait();
+        final AccessToken accessToken = getAccessTokenForSharedUser(); 
+        final List<JSONObject> returnedPlaces = new ArrayList<JSONObject>();
+        GraphRequest request = GraphRequest
+                .newPlacesSearchRequest(accessToken, SEATTLE_LOCATION, 1000, 3, null,
+                        new GraphRequest.GraphJSONArrayCallback() {
+                            @Override
+                            public void onCompleted(JSONArray places, GraphResponse response) {
+                                if (places == null) {
+                                    assertNotNull(places);
+                                }
+                                for (int i = 0; i < places.length(); ++i) {
+                                    returnedPlaces.add(places.optJSONObject(i));
+                                }
+                            }
+                        });
+        GraphResponse response = request.executeAndWait();
 
         assertNull(response.getError());
-        assertNotNull(response.getGraphObject());
+        assertNotNull(response.getJSONObject());
         assertNotSame(0, returnedPlaces.size());
 
         returnedPlaces.clear();
 
-        Request nextRequest = response.getRequestForPagedResults(Response.PagingDirection.NEXT);
+        GraphRequest nextRequest = response.getRequestForPagedResults(GraphResponse.PagingDirection.NEXT);
         assertNotNull(nextRequest);
 
         nextRequest.setCallback(request.getCallback());
         response = nextRequest.executeAndWait();
 
         assertNull(response.getError());
-        assertNotNull(response.getGraphObject());
+        assertNotNull(response.getJSONObject());
         assertNotSame(0, returnedPlaces.size());
 
         returnedPlaces.clear();
 
-        Request previousRequest = response.getRequestForPagedResults(Response.PagingDirection.PREVIOUS);
+        GraphRequest previousRequest = response.getRequestForPagedResults(GraphResponse.PagingDirection.PREVIOUS);
         assertNotNull(previousRequest);
 
         previousRequest.setCallback(request.getCallback());
         response = previousRequest.executeAndWait();
 
         assertNull(response.getError());
-        assertNotNull(response.getGraphObject());
+        assertNotNull(response.getJSONObject());
         assertNotSame(0, returnedPlaces.size());
-    }
-
-    @SmallTest
-    @MediumTest
-    @LargeTest
-    public void testRequestWithClosedSessionThrowsException() {
-        TestSession session = getTestSessionWithSharedUser();
-        assertFalse(session.isOpened());
-
-        Request request = new Request(session, "4");
-        Response response = request.executeAndWait();
-
-        assertNotNull(response.getError());
     }
 }
